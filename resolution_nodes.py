@@ -34,12 +34,23 @@ SCANLINE_LIST = {
 }
 
 
-
 # ---------------------------------------------------------
 # Node 1
 # ---------------------------------------------------------
 
 class ResolutionFromMegapixels:
+    DESCRIPTION = """
+Calculate Width & Height from aspect ratio and megapixel target, in 'step' multiples.
+"""
+    RETURN_TYPES = ("INT", "INT", "INT")
+    RETURN_NAMES = ("width", "height", "longest",)
+    OUTPUT_TOOLTIPS = (
+        "",
+        "",
+        "",
+    )
+    FUNCTION = "res_from_mpix"
+    CATEGORY = "Resolution Tools"
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -55,7 +66,7 @@ class ResolutionFromMegapixels:
                         "default": 1.0,
                         "min": 0.05,
                         "max": 50.0,
-                        "step": 0.1,
+                        "step": 0.0001,
                     }
                 ),
 
@@ -72,21 +83,7 @@ class ResolutionFromMegapixels:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT")
-    RETURN_NAMES = ("width", "height", "longest",)
-    OUTPUT_TOOLTIPS = (
-        "",
-        "",
-        "",
-    )
-    FUNCTION = "res_from_mpix"
-    CATEGORY = "Resolution Tools"
-    DESCRIPTION = """
-Calculate Width & Height from aspect ratio and megapixel target, in 'step' multiples.
-"""
-
     def res_from_mpix(self, aspect_ratio, megapixels, step):
-
         aspect_width, aspect_height = ASPECT_RATIOS[aspect_ratio]
 
         width = math.floor( math.sqrt(megapixels * 1024 * 1024 * aspect_width / aspect_height) / step) * step
@@ -101,6 +98,19 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'step' multi
 # ---------------------------------------------------------
 
 class ResolutionFromScanlines:
+    DESCRIPTION = """
+Calculate Width & Height from aspect ratio and scanlines target, in 'step' multiples.
+"""
+    RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
+    RETURN_NAMES = ("width", "height", "longest", "megapixels",)
+    OUTPUT_TOOLTIPS = (
+        "",
+        "",
+        "",
+        "",
+    )
+    FUNCTION = "res_from_size"
+    CATEGORY = "Resolution Tools"
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -127,22 +137,7 @@ class ResolutionFromScanlines:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
-    RETURN_NAMES = ("width", "height", "longest", "megapixels",)
-    OUTPUT_TOOLTIPS = (
-        "",
-        "",
-        "",
-        "",
-    )
-    FUNCTION = "res_from_size"
-    CATEGORY = "Resolution Tools"
-    DESCRIPTION = """
-Calculate Width & Height from aspect ratio and scanlines target, in 'step' multiples.
-"""
-
     def res_from_size(self, aspect_ratio, scanlines, step):
-
         aspect_width, aspect_height = ASPECT_RATIOS[aspect_ratio]
         size = int(SCANLINE_LIST[scanlines])
 
@@ -161,6 +156,20 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'step' multi
 # ---------------------------------------------------------
 
 class ResolutionCalculator:
+    DESCRIPTION = """
+Calculate resized dimensions, using 'image' aspect ratio, in 'step' multiples.
+"""
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", "FLOAT",)
+    RETURN_NAMES = ("image", "width", "height", "longest", "megapixels",)
+    OUTPUT_TOOLTIPS = (
+        "passthrough of input image",
+        "Width for resized image",
+        "Height for resized image",
+        "Longest edge for resized image"
+        "Megapixels for resized image",
+    )
+    FUNCTION = "calculate_resolutions"
+    CATEGORY = "Resolution Tools"
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -187,23 +196,7 @@ class ResolutionCalculator:
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", "FLOAT",)
-    RETURN_NAMES = ("image", "width", "height", "longest", "megapixels",)
-    OUTPUT_TOOLTIPS = (
-        "passthrough of input image",
-        "Width for resized image",
-        "Height for resized image",
-        "Longest edge for resized image"
-        "Megapixels for resized image",
-    )
-    FUNCTION = "calculate_resolutions"
-    CATEGORY = "Resolution Tools"
-    DESCRIPTION = """
-Calculate resized dimensions, using 'image' aspect ratio, in 'step' multiples.
-"""
-
     def calculate_resolutions(self, image, scanlines, step):
-
         res_size = int(SCANLINE_LIST[scanlines])
 
         input_height = image.shape[1]
@@ -225,6 +218,33 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'step' multiples.
 
 
 # ---------------------------------------------------------
+# Node 4
+# ---------------------------------------------------------
+
+class AspectRatioSelector:
+    DESCRIPTION = """
+Return the Aspect Ratio that was selected from the list.
+"""
+    CATEGORY = "Resolution Tools"
+    RETURN_TYPES = (list(ASPECT_RATIOS.keys()),)
+    RETURN_NAMES = ("aspect_ratio",)
+    FUNCTION = "select_ratio"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "aspect_ratio": (
+                    list(ASPECT_RATIOS.keys()),
+                ),
+            }
+        }
+
+    def select_ratio(self, aspect_ratio):
+        return (aspect_ratio,)
+
+
+# ---------------------------------------------------------
 # ComfyUI node registration
 # ---------------------------------------------------------
 
@@ -232,6 +252,7 @@ NODE_CLASS_MAPPINGS = {
     "ResolutionFromMegapixels": ResolutionFromMegapixels,
     "ResolutionFromScanlines": ResolutionFromScanlines,    
     "ResolutionCalculator": ResolutionCalculator,
+    "AspectRatioSelector": AspectRatioSelector,
 }
 
 
@@ -239,4 +260,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromMegapixels": "Resolution from Megapixels",
     "ResolutionFromScanlines": "Resolution from Scanlines",    
     "ResolutionCalculator": "Resolution Calculator",
+    "AspectRatioSelector": "Aspect Ratio Selector",
 }
