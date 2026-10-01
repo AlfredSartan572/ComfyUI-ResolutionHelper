@@ -48,7 +48,7 @@ SCANLINE_LIST = {
 
 class ResolutionFromMegapixels:
     DESCRIPTION = """
-Calculate Width & Height from aspect ratio and megapixel target, in 'step' multiples.
+Calculate Width & Height from aspect ratio and megapixel target, in 'multiple' multiples.
 """
     RETURN_TYPES = ("INT", "INT", "INT")
     RETURN_NAMES = ("width", "height", "longest",)
@@ -78,24 +78,24 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'step' multi
                     }
                 ),
 
-                "step": (
+                "multiple": (
                     "INT",
                     {
                         "default": 32,
                         "min": 1,
                         "max": 112,
                         "step": 1,
-                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=64, other=16",
+                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
                 ),
             }
         }
 
-    def res_from_mpix(self, aspect_ratio, megapixels, step):
+    def res_from_mpix(self, aspect_ratio, megapixels, multiple):
         aspect_width, aspect_height = ASPECT_RATIOS[aspect_ratio]
 
-        width = math.floor( math.sqrt(megapixels * 1024 * 1024 * aspect_width / aspect_height) / step) * step
-        height = math.floor( (width * aspect_height / aspect_width) / step) * step
+        width = math.floor( math.sqrt(megapixels * 1024 * 1024 * aspect_width / aspect_height) / multiple) * multiple
+        height = math.floor( (width * aspect_height / aspect_width) / multiple) * multiple
         longest = width if width > height else height
 
         return (width, height, longest)
@@ -107,7 +107,7 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'step' multi
 
 class ResolutionFromScanlines:
     DESCRIPTION = """
-Calculate Width & Height from aspect ratio and scanlines target, in 'step' multiples.
+Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' multiples.
 """
     RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
     RETURN_NAMES = ("width", "height", "longest", "megapixels",)
@@ -132,28 +132,28 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'step' multi
                     list(SCANLINE_LIST.keys()),
                 ),
 
-                "step": (
+                "multiple": (
                     "INT",
                     {
                         "default": 32,
                         "min": 1,
                         "max": 112,
                         "step": 1,
-                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=64, other=16",
+                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
                 ),
             }
         }
 
-    def res_from_size(self, aspect_ratio, scanlines, step):
+    def res_from_size(self, aspect_ratio, scanlines, multiple):
         aspect_width, aspect_height = ASPECT_RATIOS[aspect_ratio]
         size = int(SCANLINE_LIST[scanlines])
 
         pixels = size * size * 16 / 9
         mpix = pixels / 1024 / 1024
 
-        width = math.floor( math.sqrt(pixels * aspect_width / aspect_height) / step) * step
-        height = math.floor( (width * aspect_height / aspect_width) / step) * step
+        width = math.floor( math.sqrt(pixels * aspect_width / aspect_height) / multiple) * multiple
+        height = math.floor( (width * aspect_height / aspect_width) / multiple) * multiple
         longest = width if width > height else height
 
         return (width, height, longest, mpix)
@@ -165,7 +165,7 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'step' multi
 
 class ResolutionCalculator:
     DESCRIPTION = """
-Calculate resized dimensions, using 'image' aspect ratio, in 'step' multiples.
+Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiples.
 """
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", "FLOAT",)
     RETURN_NAMES = ("image", "width", "height", "longest", "megapixels",)
@@ -191,28 +191,28 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'step' multiples.
                     list(SCANLINE_LIST.keys()),
                 ),
 
-                "step": (
+                "multiple": (
                     "INT",
                     {
                         "default": 32,
                         "min": 1,
                         "max": 112,
                         "step": 1,
-                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=64, other=16",
+                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
                 ),
             }
         }
 
-    def calculate_resolutions(self, image, scanlines, step):
+    def calculate_resolutions(self, image, scanlines, multiple):
         res_size = int(SCANLINE_LIST[scanlines])
 
         input_height = image.shape[1]
         input_width = image.shape[2]
 
         scale = math.sqrt((res_size * res_size * 16 / 9) / (input_height * input_width))
-        sized_width = math.floor( (input_width * scale) / step) * step
-        sized_height = math.floor( (input_height * scale) / step) * step
+        sized_width = math.floor( (input_width * scale) / multiple) * multiple
+        sized_height = math.floor( (input_height * scale) / multiple) * multiple
         sized_mpix = sized_width * sized_height / 1024 / 1024
         longest = sized_width if sized_width > sized_height else sized_height
 
