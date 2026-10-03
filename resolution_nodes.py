@@ -163,6 +163,78 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' m
 # Node 3
 # ---------------------------------------------------------
 
+class ResolutionFromDimensions:
+    DESCRIPTION = """
+Calculate Width & Height from source Width & Height to match the given vertical resolution, in 'multiple' multiples.
+"""
+    RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
+    RETURN_NAMES = ("width", "height", "longest", "megapixels",)
+    OUTPUT_TOOLTIPS = (
+        "",
+        "",
+        "",
+        "",
+    )
+    FUNCTION = "res_from_dim"
+    CATEGORY = "Resolution Tools"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "width": (
+                    "INT",
+                    {
+                        #"default": 32,
+                        "min": 8,
+                        "max": 7680,
+                        "step": 1,
+                    }
+                ),
+
+                "height": (
+                    "INT",
+                    {
+                        #"default": 32,
+                        "min": 8,
+                        "max": 7680,
+                        "step": 1,
+                    }
+                ),
+
+                "scanlines": (
+                    list(SCANLINE_LIST.keys()),
+                ),
+
+                "multiple": (
+                    "INT",
+                    {
+                        "default": 32,
+                        "min": 1,
+                        "max": 112,
+                        "step": 1,
+                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
+                    }
+                ),
+            }
+        }
+
+    def res_from_dim(self, width, height, scanlines, multiple):
+        aspect_height = int(SCANLINE_LIST[scanlines])
+
+        scale = math.sqrt((aspect_height * aspect_height * 16.0 / 9.0) / (height * width))
+        sized_width = math.floor( (width * scale) / multiple) * multiple
+        sized_height = math.floor( (height * scale) / multiple) * multiple
+        sized_mpix = sized_width * sized_height / 1024 / 1024
+        longest = sized_width if sized_width > sized_height else sized_height
+
+        return (sized_width, sized_height, longest, sized_mpix)
+
+
+# ---------------------------------------------------------
+# Node 4
+# ---------------------------------------------------------
+
 class ResolutionCalculator:
     DESCRIPTION = """
 Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiples.
@@ -216,17 +288,11 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
         sized_mpix = sized_width * sized_height / 1024 / 1024
         longest = sized_width if sized_width > sized_height else sized_height
 
-        return (
-            image,
-            sized_width,
-            sized_height,
-            longest,
-            sized_mpix,
-        )
+        return (image, sized_width, sized_height, longest, sized_mpix)
 
 
 # ---------------------------------------------------------
-# Node 4
+# Node 5
 # ---------------------------------------------------------
 
 class AspectRatioSelector:
@@ -259,6 +325,7 @@ Return the Aspect Ratio that was selected from the list.
 NODE_CLASS_MAPPINGS = {
     "ResolutionFromMegapixels": ResolutionFromMegapixels,
     "ResolutionFromScanlines": ResolutionFromScanlines,    
+    "ResolutionFromDimensions": ResolutionFromDimensions,    
     "ResolutionCalculator": ResolutionCalculator,
     "AspectRatioSelector": AspectRatioSelector,
 }
@@ -267,6 +334,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromMegapixels": "Resolution from Megapixels",
     "ResolutionFromScanlines": "Resolution from Scanlines",    
+    "ResolutionFromDimensions": "Resolution from Dimensions",    
     "ResolutionCalculator": "Resolution Calculator",
     "AspectRatioSelector": "Aspect Ratio Selector",
 }
