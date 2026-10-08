@@ -35,10 +35,11 @@ The available aspect ratio selection nodes also provide only a limited set of op
 
 <br/>
 
-<table style="width: 66.66%;">
+<table style="width: 100.00%;">
   <tr>
     <th style="width: 33.33%;">Aspect Ratio selector</th>
     <th style="width: 33.33%;">Resolution Calculator</th>
+    <th style="width: 33.33%;">&nbsp;</th>
   </tr>
   <tr>
     <td style="width: 33.33%; vertical-align: top;">
@@ -50,5 +51,6 @@ The available aspect ratio selection nodes also provide only a limited set of op
       (this just calculates the resolution, it does not resize the image)
       <img src="assets/res_calc.jpg" alt="res_calc" style="width: 100%; height: auto;">
     </td>
+    <td style="width: 33.33%; vertical-align: top;"> <br/> </td>
   </tr>
 </table>

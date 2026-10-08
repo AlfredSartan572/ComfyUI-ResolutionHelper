@@ -1,8 +1,9 @@
 [project]
-name = "resolutionhelper"
+name = "ComfyUI-ResolutionHelper"
 description = "Resolution Picker and Calculator"
-version = "1.0.0"
+version = "1.0.2"
 license = "MIT"
+dependencies = [] 
 
 # classifiers = [
 #     # For OS-independent nodes (works on all operating systems)
