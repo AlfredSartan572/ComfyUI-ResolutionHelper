@@ -319,6 +319,33 @@ Return the Aspect Ratio that was selected from the list.
 
 
 # ---------------------------------------------------------
+# Node 6
+# ---------------------------------------------------------
+
+class VerticalResolutionSelector:
+    DESCRIPTION = """
+Return the Vertical Resolution that was selected from the list.
+"""
+    CATEGORY = "Resolution Tools"
+    RETURN_TYPES = (list(SCANLINE_LIST.keys()),)
+    RETURN_NAMES = ("scanlines",)
+    FUNCTION = "select_vres"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "scanlines": (
+                    list(SCANLINE_LIST.keys()),
+                ),
+            }
+        }
+
+    def select_vres(self, scanlines):
+        return (scanlines,)
+
+
+# ---------------------------------------------------------
 # ComfyUI node registration
 # ---------------------------------------------------------
 
@@ -328,6 +355,7 @@ NODE_CLASS_MAPPINGS = {
     "ResolutionFromDimensions": ResolutionFromDimensions,    
     "ResolutionCalculator": ResolutionCalculator,
     "AspectRatioSelector": AspectRatioSelector,
+    "VerticalResolutionSelector": VerticalResolutionSelector,
 }
 
 
@@ -337,4 +365,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromDimensions": "Resolution from Dimensions",    
     "ResolutionCalculator": "Resolution Calculator",
     "AspectRatioSelector": "Aspect Ratio Selector",
+    "VerticalResolutionSelector": "Vertical Resolution Selector",
 }
