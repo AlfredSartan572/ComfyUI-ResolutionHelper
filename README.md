@@ -9,4 +9,9 @@ The aspect ratio selection nodes in ComfyUI also only provide a limited set of o
 
 
 # 6 nodes
-<img src="assets/ResolutionHelperNodes.png" alt="ResolutionHelperNodes">
+<img src="assets/ResolutionHelperNodes.png" alt="ResolutionHelperNodes"><br>
+<br>
+# notes
+- multiple [int]: width and height are rounded down to the nearest multiples of this value.<br>
+- longest [int]: The larger of the width and height values.<br>
+- megaPixels [float]: The number of pixels for the calculated width and height, expressed in megapixels.

@@ -55,7 +55,7 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'multiple' m
     OUTPUT_TOOLTIPS = (
         "",
         "",
-        "",
+        "The larger of the width and height values (i.e. longest edge)",
     )
     FUNCTION = "res_from_mpix"
     CATEGORY = "Resolution Tools"
@@ -114,8 +114,8 @@ Calculate Width & Height from aspect ratio and Pixel Budget target, in 'multiple
     OUTPUT_TOOLTIPS = (
         "",
         "",
-        "",
-        "",
+        "The larger of the width and height values (i.e. longest edge)",
+        "The number of pixels for the calculated width and height, expressed in megapixels",
     )
     FUNCTION = "res_from_budget"
     CATEGORY = "Resolution Tools"
@@ -172,8 +172,8 @@ Calculate Width & Height from source Width & Height to match the given pixel bud
     OUTPUT_TOOLTIPS = (
         "",
         "",
-        "",
-        "",
+        "The larger of the width and height values (i.e. longest edge)",
+        "The number of pixels for the calculated width and height, expressed in megapixels",
     )
     FUNCTION = "res_from_dim"
     CATEGORY = "Resolution Tools"
@@ -243,10 +243,10 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
     RETURN_NAMES = ("image", "width", "height", "longest", "megapixels",)
     OUTPUT_TOOLTIPS = (
         "passthrough of input image",
-        "Width for resized image",
-        "Height for resized image",
-        "Longest edge for resized image"
-        "Megapixels for resized image",
+        "new width",
+        "new height",
+        "The larger of the width and height values (i.e. longest edge)",
+        "The number of pixels for the calculated width and height, expressed in megapixels",
     )
     FUNCTION = "calculate_resolutions"
     CATEGORY = "Resolution Tools"
