@@ -18,7 +18,7 @@ ASPECT_RATIOS = {
     "9:32 (Portrait Super Ultrawide)": (9, 32),
 }
 
-SCANLINE_LIST = {
+PIXEL_BUDGET_LIST = {
     "240p": 240,
     "360p": 360,
     "480p": 480,
@@ -105,9 +105,9 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'multiple' m
 # Node 2
 # ---------------------------------------------------------
 
-class ResolutionFromScanlines:
+class ResolutionFromPixelBudget:
     DESCRIPTION = """
-Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' multiples.
+Calculate Width & Height from aspect ratio and Pixel Budget target, in 'multiple' multiples.
 """
     RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
     RETURN_NAMES = ("width", "height", "longest", "megapixels",)
@@ -117,7 +117,7 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' m
         "",
         "",
     )
-    FUNCTION = "res_from_size"
+    FUNCTION = "res_from_budget"
     CATEGORY = "Resolution Tools"
 
     @classmethod
@@ -128,8 +128,8 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' m
                     list(ASPECT_RATIOS.keys()),
                 ),
 
-                "scanlines": (
-                    list(SCANLINE_LIST.keys()),
+                "pixelbudget": (
+                    list(PIXEL_BUDGET_LIST.keys()),
                 ),
 
                 "multiple": (
@@ -145,9 +145,9 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' m
             }
         }
 
-    def res_from_size(self, aspect_ratio, scanlines, multiple):
+    def res_from_budget(self, aspect_ratio, pixelbudget, multiple):
         aspect_width, aspect_height = ASPECT_RATIOS[aspect_ratio]
-        size = int(SCANLINE_LIST[scanlines])
+        size = int(PIXEL_BUDGET_LIST[pixelbudget])
 
         pixels = size * size * 16 / 9
         mpix = pixels / 1024 / 1024
@@ -165,7 +165,7 @@ Calculate Width & Height from aspect ratio and scanlines target, in 'multiple' m
 
 class ResolutionFromDimensions:
     DESCRIPTION = """
-Calculate Width & Height from source Width & Height to match the given vertical resolution, in 'multiple' multiples.
+Calculate Width & Height from source Width & Height to match the given pixel budget, in 'multiple' multiples.
 """
     RETURN_TYPES = ("INT", "INT", "INT", "FLOAT",)
     RETURN_NAMES = ("width", "height", "longest", "megapixels",)
@@ -202,8 +202,8 @@ Calculate Width & Height from source Width & Height to match the given vertical 
                     }
                 ),
 
-                "scanlines": (
-                    list(SCANLINE_LIST.keys()),
+                "pixelbudget": (
+                    list(PIXEL_BUDGET_LIST.keys()),
                 ),
 
                 "multiple": (
@@ -219,8 +219,8 @@ Calculate Width & Height from source Width & Height to match the given vertical 
             }
         }
 
-    def res_from_dim(self, width, height, scanlines, multiple):
-        aspect_height = int(SCANLINE_LIST[scanlines])
+    def res_from_dim(self, width, height, pixelbudget, multiple):
+        aspect_height = int(PIXEL_BUDGET_LIST[pixelbudget])
 
         scale = math.sqrt((aspect_height * aspect_height * 16.0 / 9.0) / (height * width))
         sized_width = math.floor( (width * scale) / multiple) * multiple
@@ -259,8 +259,8 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
                     "IMAGE",
                 ),
 
-                "scanlines": (
-                    list(SCANLINE_LIST.keys()),
+                "pixelbudget": (
+                    list(PIXEL_BUDGET_LIST.keys()),
                 ),
 
                 "multiple": (
@@ -276,8 +276,8 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
             }
         }
 
-    def calculate_resolutions(self, image, scanlines, multiple):
-        res_size = int(SCANLINE_LIST[scanlines])
+    def calculate_resolutions(self, image, pixelbudget, multiple):
+        res_size = int(PIXEL_BUDGET_LIST[pixelbudget])
 
         input_height = image.shape[1]
         input_width = image.shape[2]
@@ -322,27 +322,27 @@ Return the Aspect Ratio that was selected from the list.
 # Node 6
 # ---------------------------------------------------------
 
-class VerticalResolutionSelector:
+class PixelBudgetSelector:
     DESCRIPTION = """
-Return the Vertical Resolution that was selected from the list.
+Return the Pixel Budget that was selected from the list.
 """
     CATEGORY = "Resolution Tools"
-    RETURN_TYPES = (list(SCANLINE_LIST.keys()),)
-    RETURN_NAMES = ("scanlines",)
-    FUNCTION = "select_vres"
+    RETURN_TYPES = (list(PIXEL_BUDGET_LIST.keys()),)
+    RETURN_NAMES = ("pixelbudget",)
+    FUNCTION = "select_budget"
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "scanlines": (
-                    list(SCANLINE_LIST.keys()),
+                "pixelbudget": (
+                    list(PIXEL_BUDGET_LIST.keys()),
                 ),
             }
         }
 
-    def select_vres(self, scanlines):
-        return (scanlines,)
+    def select_budget(self, pixelbudget):
+        return (pixelbudget,)
 
 
 # ---------------------------------------------------------
@@ -351,19 +351,19 @@ Return the Vertical Resolution that was selected from the list.
 
 NODE_CLASS_MAPPINGS = {
     "ResolutionFromMegapixels": ResolutionFromMegapixels,
-    "ResolutionFromScanlines": ResolutionFromScanlines,    
+    "ResolutionFromPixelBudget": ResolutionFromPixelBudget,    
     "ResolutionFromDimensions": ResolutionFromDimensions,    
     "ResolutionCalculator": ResolutionCalculator,
     "AspectRatioSelector": AspectRatioSelector,
-    "VerticalResolutionSelector": VerticalResolutionSelector,
+    "PixelBudgetSelector": PixelBudgetSelector,
 }
 
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromMegapixels": "Resolution from Megapixels",
-    "ResolutionFromScanlines": "Resolution from Scanlines",    
+    "ResolutionFromPixelBudget": "Resolution from PixelBudget",    
     "ResolutionFromDimensions": "Resolution from Dimensions",    
     "ResolutionCalculator": "Resolution Calculator",
     "AspectRatioSelector": "Aspect Ratio Selector",
-    "VerticalResolutionSelector": "Vertical Resolution Selector",
+    "PixelBudgetSelector": "Pixel Budget Selector",
 }

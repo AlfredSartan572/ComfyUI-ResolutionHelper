@@ -1,7 +1,7 @@
 [project]
 name = "resolutionhelper"
 description = "Resolution Picker and Calculator"
-version = "1.0.4"
+version = "1.0.5"
 license = "MIT"
 dependencies = [] 
 
