@@ -46,15 +46,35 @@ function roundDown(value, multiple) {
     return Math.floor(value / multiple) * multiple;
 }
 
+// ---------------------------------------------------------
+// Upstream connection configuration
+// ---------------------------------------------------------
+
+const UPSTREAM_CONNECTIONS = {
+    ResolutionFromMegapixels: {
+        aspect_ratio: "AspectRatioSelector",
+    },
+
+    ResolutionFromDimensions: {
+        pixelbudget: "PixelBudgetSelector",
+    },
+
+    ResolutionFromPixelBudget: {
+        aspect_ratio: "AspectRatioSelector",
+        pixelbudget: "PixelBudgetSelector",
+    },
+
+    ResolutionCalculator: {
+        pixelbudget: "PixelBudgetSelector",
+    },
+};
+
 app.registerExtension({
     name: "ResolutionTools.ResolutionPreviews",
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        const supportedNodes = [
-            "ResolutionFromPixelBudget",
-            "ResolutionFromMegapixels",
-            "ResolutionFromDimensions",
-        ];
+
+        const supportedNodes = Object.keys(UPSTREAM_CONNECTIONS);
 
         if (!supportedNodes.includes(nodeData.name)) {
             return;
@@ -63,17 +83,21 @@ app.registerExtension({
         const originalCreated = nodeType.prototype.onNodeCreated;
 
         nodeType.prototype.onNodeCreated = function () {
+
             originalCreated?.apply(this, arguments);
 
             const node = this;
 
-            // Prevent duplicate previews on the same node instance.
             if (node._resolutionPreviewCreated) {
                 return;
             }
+
             node._resolutionPreviewCreated = true;
 
-            // Minimal, text-only display.
+            // -------------------------------------------------
+            // Preview widget
+            // -------------------------------------------------
+
             const container = document.createElement("div");
 
             container.style.cssText = `
@@ -109,14 +133,50 @@ app.registerExtension({
                 }
             );
 
-            function updatePreview() {
-                const widgets = node.widgets ?? [];
+            // -------------------------------------------------
+            // Read widget values, including connected inputs
+            // -------------------------------------------------
 
-                function get(name) {
-                    return widgets.find(
-                        widget => widget.name === name
-                    )?.value;
+            function get(name) {
+
+                const input = node.inputs?.find(
+                    input => input.name === name
+                );
+
+                if (input?.link != null) {
+
+                    const link = node.graph?.links?.[input.link];
+
+                    if (link) {
+
+                        const connectedNode = node.graph.getNodeById(
+                            link.origin_id
+                        );
+
+                        if (connectedNode) {
+
+                            const connectedWidget =
+                                connectedNode.widgets?.find(
+                                    widget => widget.name === name
+                                );
+
+                            if (connectedWidget) {
+                                return connectedWidget.value;
+                            }
+                        }
+                    }
                 }
+
+                return node.widgets?.find(
+                    widget => widget.name === name
+                )?.value;
+            }
+
+            // -------------------------------------------------
+            // Update preview
+            // -------------------------------------------------
+
+            function updatePreview() {
 
                 const multiple = Number(get("multiple"));
 
@@ -128,10 +188,9 @@ app.registerExtension({
                 let width;
                 let height;
 
-                // ---------------------------------------------
                 // ResolutionFromPixelBudget
-                // ---------------------------------------------
                 if (nodeData.name === "ResolutionFromPixelBudget") {
+
                     const ratio = ASPECT_RATIOS[get("aspect_ratio")];
                     const budget = PIXEL_BUDGETS[get("pixelbudget")];
 
@@ -141,7 +200,6 @@ app.registerExtension({
                     }
 
                     const [aspectWidth, aspectHeight] = ratio;
-
                     const pixels = budget * budget * 16 / 9;
 
                     width = roundDown(
@@ -157,12 +215,9 @@ app.registerExtension({
                     );
                 }
 
-                // ---------------------------------------------
                 // ResolutionFromMegapixels
-                // ---------------------------------------------
-                else if (
-                    nodeData.name === "ResolutionFromMegapixels"
-                ) {
+                else if (nodeData.name === "ResolutionFromMegapixels") {
+
                     const ratio = ASPECT_RATIOS[get("aspect_ratio")];
                     const megapixels = Number(get("megapixels"));
 
@@ -191,12 +246,9 @@ app.registerExtension({
                     );
                 }
 
-                // ---------------------------------------------
                 // ResolutionFromDimensions
-                // ---------------------------------------------
-                else if (
-                    nodeData.name === "ResolutionFromDimensions"
-                ) {
+                else if (nodeData.name === "ResolutionFromDimensions") {
+
                     const inputWidth = Number(get("width"));
                     const inputHeight = Number(get("height"));
                     const budget = PIXEL_BUDGETS[get("pixelbudget")];
@@ -218,15 +270,32 @@ app.registerExtension({
                         ) / (inputHeight * inputWidth)
                     );
 
-                    width = roundDown(
-                        inputWidth * scale,
-                        multiple
+                    width = roundDown(inputWidth * scale, multiple);
+                    height = roundDown(inputHeight * scale, multiple);
+                }
+
+                // ResolutionCalculator
+                else if (nodeData.name === "ResolutionCalculator") {
+
+                    const budget = PIXEL_BUDGETS[get("pixelbudget")];
+
+                    const imageWidget = node.widgets?.find(
+                        widget => widget.name === "image"
                     );
 
-                    height = roundDown(
-                        inputHeight * scale,
-                        multiple
-                    );
+                    // Image dimensions are not available from the
+                    // IMAGE input widget. See note below.
+                    if (!budget) {
+                        container.textContent = "resolution: -- × --";
+                        return;
+                    }
+
+                    // ResolutionCalculator needs the actual image
+                    // dimensions, which are only available at execution.
+                    container.textContent = `pixel budget: ${get("pixelbudget")}`;
+
+                    node.setDirtyCanvas(true, true);
+                    return;
                 }
 
                 container.textContent =
@@ -235,7 +304,179 @@ app.registerExtension({
                 node.setDirtyCanvas(true, true);
             }
 
-            // Refresh the preview when any relevant widget changes.
+
+            // -------------------------------------------------
+            // Remove existing upstream listeners
+            // -------------------------------------------------
+
+            function removeUpstreamListeners() {
+
+                for (const subscription of
+                    node._resolutionPreviewSubscriptions ?? []) {
+
+                    subscription.widget
+                        ._resolutionPreviewListeners
+                        ?.delete(node);
+                }
+
+                node._resolutionPreviewSubscriptions = [];
+            }
+
+            // -------------------------------------------------
+            // Generic upstream listener
+            // -------------------------------------------------
+
+            function setupUpstreamListener() {
+
+                // Always rebuild subscriptions from the actual
+                // current connections.
+
+                removeUpstreamListeners();
+
+                const connections = UPSTREAM_CONNECTIONS[nodeData.name];
+
+                for (const [inputName, sourceNodeType] of
+                    Object.entries(connections)) {
+
+                    const input = node.inputs?.find(
+                        input => input.name === inputName
+                    );
+
+                    if (!input || input.link == null) {
+                        continue;
+                    }
+
+                    const link = node.graph?.links?.[input.link];
+
+                    if (!link) {
+                        continue;
+                    }
+
+                    const sourceNode = node.graph.getNodeById(
+                        link.origin_id
+                    );
+
+                    if (
+                        !sourceNode ||
+                        sourceNode.type !== sourceNodeType
+                    ) {
+                        continue;
+                    }
+
+                    const sourceWidget = sourceNode.widgets?.find(
+                        widget => widget.name === inputName
+                    );
+
+                    if (!sourceWidget) {
+                        continue;
+                    }
+
+                    // Install the callback only once per source widget.
+
+                    if (!sourceWidget._resolutionPreviewListeners) {
+
+                        sourceWidget._resolutionPreviewListeners =
+                            new Set();
+
+                        const originalCallback = sourceWidget.callback;
+
+                        sourceWidget.callback = function () {
+
+                            originalCallback?.apply(this, arguments);
+
+                            // Use a copy because invalid subscriptions
+                            // may be removed while iterating.
+
+                            for (const targetNode of [
+                                ...sourceWidget._resolutionPreviewListeners
+                            ]) {
+
+                                // Remove deleted or disconnected nodes.
+
+                                if (
+                                    !targetNode.graph ||
+                                    !targetNode._updateResolutionPreview
+                                ) {
+                                    sourceWidget._resolutionPreviewListeners
+                                        .delete(targetNode);
+
+                                    continue;
+                                }
+
+                                const targetInput =
+                                    targetNode.inputs?.find(
+                                        input => input.name === inputName
+                                    );
+
+                                const targetLink =
+                                    targetInput?.link != null
+                                        ? targetNode.graph.links?.[
+                                            targetInput.link
+                                        ]
+                                        : null;
+
+                                // Verify that the connection still points
+                                // to this particular selector.
+
+                                if (
+                                    !targetLink ||
+                                    targetLink.origin_id !== sourceNode.id
+                                ) {
+                                    sourceWidget._resolutionPreviewListeners
+                                        .delete(targetNode);
+
+                                    continue;
+                                }
+
+                                targetNode._updateResolutionPreview?.();
+                            }
+                        };
+                    }
+
+                    // Store the actual node object, not just its ID.
+
+                    sourceWidget._resolutionPreviewListeners.add(node);
+
+                    // Keep track of subscriptions owned by this node.
+
+                    if (!node._resolutionPreviewSubscriptions) {
+                        node._resolutionPreviewSubscriptions = [];
+                    }
+
+                    node._resolutionPreviewSubscriptions.push({
+                        widget: sourceWidget,
+                        sourceNode,
+                        inputName,
+                    });
+                }
+            }
+
+            // -------------------------------------------------
+            // Delayed initialization / workflow loading
+            // -------------------------------------------------
+
+            function schedulePreviewRefresh() {
+
+                // Wait for the current graph configuration to finish.
+                // Two animation frames give LiteGraph time to restore
+                // widgets, connections and their values.
+
+                requestAnimationFrame(() => {
+
+                    requestAnimationFrame(() => {
+
+                        setupUpstreamListener();
+                        updatePreview();
+
+                    });
+
+                });
+            }
+
+            // -------------------------------------------------
+            // Local widget callbacks
+            // -------------------------------------------------
+
             const relevantWidgets = [
                 "aspect_ratio",
                 "megapixels",
@@ -246,64 +487,97 @@ app.registerExtension({
             ];
 
             for (const widget of node.widgets ?? []) {
+
                 if (!relevantWidgets.includes(widget.name)) {
                     continue;
                 }
 
-                // Update after the standard widget callback.
                 const originalCallback = widget.callback;
 
                 widget.callback = function () {
-                    if (originalCallback) {
-                        originalCallback.apply(this, arguments);
-                    }
+
+                    originalCallback?.apply(this, arguments);
 
                     updatePreview();
                 };
 
-                // Also update when a numeric widget is edited directly.
                 const originalInput = widget.input;
 
                 if (typeof originalInput === "function") {
+
                     widget.input = function () {
+
                         const result = originalInput.apply(this, arguments);
+
                         updatePreview();
+
                         return result;
                     };
                 }
             }
 
+            // -------------------------------------------------
+            // Widget changes
+            // -------------------------------------------------
 
             const originalWidgetChanged = node.onWidgetChanged;
 
-            node.onWidgetChanged = function (
-                widgetName,
-                value,
-                oldValue,
-                widget
-            ) {
-                if (originalWidgetChanged) {
-                    originalWidgetChanged.apply(this, arguments);
-                }
-            
-                // Refresh the preview after any relevant widget changes.
+            node.onWidgetChanged = function () {
+
+                originalWidgetChanged?.apply(this, arguments);
+
                 updatePreview();
             };
 
-            // Refresh when a saved workflow is loaded.
-            const originalConfigure = node.onConfigure;			
+
+            // -------------------------------------------------
+            // Node removal
+            // -------------------------------------------------
+
+            const originalRemoved = node.onRemoved;
+
+            node.onRemoved = function () {
+
+                removeUpstreamListeners();
+
+                originalRemoved?.apply(this, arguments);
+            };
+
+            // -------------------------------------------------
+            // Workflow loading
+            // -------------------------------------------------
+
+            const originalConfigure = node.onConfigure;
 
             node.onConfigure = function () {
-                if (originalConfigure) {
-                    originalConfigure.apply(this, arguments);
-                }
 
-                updatePreview();
+                originalConfigure?.apply(this, arguments);
+
+                schedulePreviewRefresh();
             };
 
-            updatePreview();
 
-            // Keep the node as compact as possible.
+            // -------------------------------------------------
+            // Connection changes
+            // -------------------------------------------------
+
+            const originalConnectionsChange = node.onConnectionsChange;
+
+            node.onConnectionsChange = function () {
+
+                originalConnectionsChange?.apply(this, arguments);
+
+                schedulePreviewRefresh();
+            };
+
+            // -------------------------------------------------
+            // Initial setup
+            // -------------------------------------------------
+
+            node._updateResolutionPreview = updatePreview;
+
+            schedulePreviewRefresh();
+
             node.setSize(node.computeSize());
         };
     },
