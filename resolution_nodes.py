@@ -288,8 +288,19 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
         sized_mpix = sized_width * sized_height / 1024 / 1024
         longest = sized_width if sized_width > sized_height else sized_height
 
-        return (image, sized_width, sized_height, longest, sized_mpix)
-
+        #return (image, sized_width, sized_height, longest, sized_mpix)
+        return {
+            "ui": {
+                "resolution": [f"{sized_width} × {sized_height}"]
+            },
+            "result": (
+                image,
+                sized_width,
+                sized_height,
+                longest,
+                sized_mpix
+            )
+        }
 
 # ---------------------------------------------------------
 # Node 5
@@ -351,8 +362,8 @@ Return the Pixel Budget that was selected from the list.
 
 NODE_CLASS_MAPPINGS = {
     "ResolutionFromMegapixels": ResolutionFromMegapixels,
-    "ResolutionFromPixelBudget": ResolutionFromPixelBudget,    
-    "ResolutionFromDimensions": ResolutionFromDimensions,    
+    "ResolutionFromPixelBudget": ResolutionFromPixelBudget,
+    "ResolutionFromDimensions": ResolutionFromDimensions,
     "ResolutionCalculator": ResolutionCalculator,
     "AspectRatioSelector": AspectRatioSelector,
     "PixelBudgetSelector": PixelBudgetSelector,
@@ -361,8 +372,8 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromMegapixels": "Resolution from Megapixels",
-    "ResolutionFromPixelBudget": "Resolution from PixelBudget",    
-    "ResolutionFromDimensions": "Resolution from Dimensions",    
+    "ResolutionFromPixelBudget": "Resolution from PixelBudget",
+    "ResolutionFromDimensions": "Resolution from Dimensions",
     "ResolutionCalculator": "Resolution Calculator",
     "AspectRatioSelector": "Aspect Ratio Selector",
     "PixelBudgetSelector": "Pixel Budget Selector",

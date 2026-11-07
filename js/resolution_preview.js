@@ -134,6 +134,31 @@ app.registerExtension({
             );
 
             // -------------------------------------------------
+            // Receive calculated resolution from Python
+            // -------------------------------------------------
+
+            const originalExecuted = node.onExecuted;
+
+            node.onExecuted = function (message) {
+
+                originalExecuted?.apply(this, arguments);
+
+                if (nodeData.name !== "ResolutionCalculator") {
+                    return;
+                }
+
+                const resolution = message?.resolution?.[0];
+
+                if (typeof resolution === "string" && resolution.length > 0) {
+                    container.textContent = `resolution: ${resolution}`;
+                } else {
+                    container.textContent = "resolution: -- × --";
+                }
+
+                node.setDirtyCanvas(true, true);
+            };
+
+            // -------------------------------------------------
             // Read widget values, including connected inputs
             // -------------------------------------------------
 
@@ -277,22 +302,9 @@ app.registerExtension({
                 // ResolutionCalculator
                 else if (nodeData.name === "ResolutionCalculator") {
 
-                    const budget = PIXEL_BUDGETS[get("pixelbudget")];
-
-                    const imageWidget = node.widgets?.find(
-                        widget => widget.name === "image"
-                    );
-
-                    // Image dimensions are not available from the
-                    // IMAGE input widget. See note below.
-                    if (!budget) {
-                        container.textContent = "resolution: -- × --";
-                        return;
-                    }
-
-                    // ResolutionCalculator needs the actual image
-                    // dimensions, which are only available at execution.
-                    container.textContent = `pixel budget: ${get("pixelbudget")}`;
+                    // Actual resolution will be received from Python
+                    // after node execution.
+                    container.textContent = "resolution: -- × --";
 
                     node.setDirtyCanvas(true, true);
                     return;
