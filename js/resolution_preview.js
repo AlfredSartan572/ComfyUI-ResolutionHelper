@@ -42,11 +42,12 @@ const PIXEL_BUDGETS = {
     "2160p": 2160,
     "2400p": 2400,
     "2880p": 2880,
+    "3072p": 3072,
     "3160p": 2880,
-    "3384p": 3384,
     "3200p": 3200,
+    "3384p": 3384,
     "3456p": 3456,
-    "4096p": 4098,
+    "4096p": 4096,
     "4320p": 4320,
 };
 
@@ -60,45 +61,25 @@ function roundDown(value, multiple) {
 
 const UPSTREAM_CONNECTIONS = {
     ResolutionFromMegapixels: {
-        aspect_ratio: [
-            "AspectRatioSelector",
-            "AspectRatioFromImage",
-        ],
-        megapixels: [
-            "AspectRatioFromImage",
-        ],
+        aspect_ratio: ["AspectRatioSelector", "AspectRatioFromImage"],
+        megapixels: ["AspectRatioFromImage"],
     },
 
     ResolutionFromDimensions: {
-        pixelbudget: [
-		    "PixelBudgetSelector",
-            "AspectRatioFromImage",
-		],
+        pixelbudget: ["PixelBudgetSelector", "AspectRatioFromImage"],
     },
 
     ResolutionFromPixelBudget: {
-        aspect_ratio: [
-            "AspectRatioSelector",
-            "AspectRatioFromImage",
-        ],
-        pixelbudget: [
-		    "PixelBudgetSelector",
-            "AspectRatioFromImage",
-		],
+        aspect_ratio: ["AspectRatioSelector", "AspectRatioFromImage"],
+        pixelbudget: ["PixelBudgetSelector", "AspectRatioFromImage"],
     },
 
     ResolutionCalculator: {
-        pixelbudget: [
-		    "PixelBudgetSelector",
-            "AspectRatioFromImage",
-		],
+        pixelbudget: ["PixelBudgetSelector", "AspectRatioFromImage"],
     },
 
     AspectRatioFromImage: {
-        pixelbudget: [
-		    "PixelBudgetSelector",
-            "AspectRatioFromImage",
-		],
+        pixelbudget: ["PixelBudgetSelector", "AspectRatioFromImage"],
     },
 };
 
@@ -175,10 +156,6 @@ app.registerExtension({
             node.onExecuted = function (message) {
 
                 originalExecuted?.apply(this, arguments);
-
-                //if (nodeData.name !== "ResolutionCalculator") {
-                //    return;
-                //}
 
                 // Cache values calculated by Python.
                 node._resolutionPreviewValues = {
