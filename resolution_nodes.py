@@ -28,25 +28,27 @@ PIXEL_BUDGET_LIST = {
     "544p": 544,
     "640p": 640,
     "680p": 680,
-    "720p": 720,
+    "720p": 720,      # HD
     "768p": 768,
     "864p": 864,
     "1024p": 1024,
-    "1080p": 1080,
+    "1080p": 1080,    # Full HD
     "1200p": 1200,
     "1280p": 1280,
     "1360p": 1360,
-    "1440p": 1440,
-    "1600p": 1600,
+    "1440p": 1440,    # 2K
+    "1620p": 1620,    # 3K
     "1800p": 1800,
-    "2160p": 2160,
+    "2160p": 2160,    # 4K
     "2400p": 2400,
-    "2880p": 2880,
+    "2880p": 2880,    # 5K
+    "3160p": 2880,    # 6K
+    "3384p": 3384,    # ProVision
     "3200p": 3200,
     "3456p": 3456,
-    "4320p": 4320,
+    "4096p": 4098,    # 7K
+    "4320p": 4320,    # 8K
 }
-
 
 # ---------------------------------------------------------
 # Node 1
@@ -104,8 +106,12 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'multiple' m
         height = math.floor( (width * aspect_height / aspect_width) / multiple) * multiple
         longest = width if width > height else height
 
-        return (width, height, longest)
-
+        return {
+            "ui": {
+                "resolution": [f"{width} × {height}"]
+            },
+            "result": (width, height, longest)
+        }
 
 # ---------------------------------------------------------
 # Node 2
@@ -162,8 +168,12 @@ Calculate Width & Height from aspect ratio and Pixel Budget target, in 'multiple
         height = math.floor( (width * aspect_height / aspect_width) / multiple) * multiple
         longest = width if width > height else height
 
-        return (width, height, longest, mpix)
-
+        return {
+            "ui": {
+                "resolution": [f"{width} × {height}"]
+            },
+            "result": (width, height, longest, mpix)
+        }
 
 # ---------------------------------------------------------
 # Node 3
@@ -191,7 +201,6 @@ Calculate Width & Height from source Width & Height to match the given pixel bud
                 "width": (
                     "INT",
                     {
-                        #"default": 32,
                         "min": 8,
                         "max": 7680,
                         "step": 1,
@@ -201,7 +210,6 @@ Calculate Width & Height from source Width & Height to match the given pixel bud
                 "height": (
                     "INT",
                     {
-                        #"default": 32,
                         "min": 8,
                         "max": 7680,
                         "step": 1,
@@ -294,7 +302,6 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
         sized_mpix = sized_width * sized_height / 1024 / 1024
         longest = sized_width if sized_width > sized_height else sized_height
 
-        #return (image, sized_width, sized_height, longest, sized_mpix)
         return {
             "ui": {
                 "resolution": [f"{sized_width} × {sized_height}"]
@@ -310,6 +317,82 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
 
 # ---------------------------------------------------------
 # Node 5
+# ---------------------------------------------------------
+
+class AspectRatioFromImage:
+    DESCRIPTION = """
+Calculate the Aspect Ratio and Pixel Budget that best fit the given image.
+Also returns image dimensions, longest edge and megapixels.
+"""
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", list(ASPECT_RATIOS.keys()), "FLOAT", list(PIXEL_BUDGET_LIST.keys()),)
+    RETURN_NAMES = ("image", "width", "height", "longest", "aspect_ratio", "megapixels", "pixelbudget",)
+    OUTPUT_TOOLTIPS = (
+        "passthrough of input image",
+        "image width",
+        "image height",
+        "the larger of the width and height values (i.e. longest edge)",
+        "the Aspect Ratio that best matches the given image",
+        "the number of pixels in the image, expressed in megapixels",
+        "the Pixel Budget that best matches the given image",
+    )
+    FUNCTION = "calculate_AR"
+    CATEGORY = "Resolution Tools"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": (
+                    "IMAGE",
+                ),
+            }
+        }
+
+    def calculate_AR(self, image):
+        img_height = image.shape[1]
+        img_width = image.shape[2]
+        mpix = img_width * img_height / 1024 / 1024
+        longest = max(img_width, img_height)
+
+        actual_ratio = img_width / img_height
+        best_aspect_ratio = min(
+            ASPECT_RATIOS.keys(),
+            key=lambda name: abs(
+                math.log(
+                    actual_ratio /
+                    (ASPECT_RATIOS[name][0] / ASPECT_RATIOS[name][1])
+                )
+            )
+        )
+
+        reference_height = math.sqrt(img_width * img_height * 9 / 16)
+        best_pixelbudget = min(
+            PIXEL_BUDGET_LIST.keys(),
+            key=lambda name: abs(
+                reference_height - PIXEL_BUDGET_LIST[name]
+            )
+        )
+
+        return {
+            "ui": {
+                "resolution": [f"{img_width} × {img_height}"],
+                "aspect_ratio": [best_aspect_ratio],
+                "pixelbudget": [best_pixelbudget],
+                "megapixels": [mpix],
+            },
+            "result": (
+                image,
+                img_width,
+                img_height,
+                longest,
+                best_aspect_ratio,
+                mpix,
+                best_pixelbudget,
+            )
+        }
+
+# ---------------------------------------------------------
+# Node 6
 # ---------------------------------------------------------
 
 class AspectRatioSelector:
@@ -336,7 +419,7 @@ Return the Aspect Ratio that was selected from the list.
 
 
 # ---------------------------------------------------------
-# Node 6
+# Node 7
 # ---------------------------------------------------------
 
 class PixelBudgetSelector:
@@ -371,6 +454,7 @@ NODE_CLASS_MAPPINGS = {
     "ResolutionFromPixelBudget": ResolutionFromPixelBudget,
     "ResolutionFromDimensions": ResolutionFromDimensions,
     "ResolutionCalculator": ResolutionCalculator,
+    "AspectRatioFromImage": AspectRatioFromImage,
     "AspectRatioSelector": AspectRatioSelector,
     "PixelBudgetSelector": PixelBudgetSelector,
 }
@@ -381,6 +465,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ResolutionFromPixelBudget": "Resolution from PixelBudget",
     "ResolutionFromDimensions": "Resolution from Dimensions",
     "ResolutionCalculator": "Resolution Calculator",
+    "AspectRatioFromImage": "Aspect Ratio from Image",
     "AspectRatioSelector": "Aspect Ratio Selector",
     "PixelBudgetSelector": "Pixel Budget Selector",
 }

@@ -37,13 +37,16 @@ const PIXEL_BUDGETS = {
     "1280p": 1280,
     "1360p": 1360,
     "1440p": 1440,
-    "1600p": 1600,
+    "1620p": 1620,
     "1800p": 1800,
     "2160p": 2160,
     "2400p": 2400,
     "2880p": 2880,
+    "3160p": 2880,
+    "3384p": 3384,
     "3200p": 3200,
     "3456p": 3456,
+    "4096p": 4098,
     "4320p": 4320,
 };
 
@@ -57,20 +60,45 @@ function roundDown(value, multiple) {
 
 const UPSTREAM_CONNECTIONS = {
     ResolutionFromMegapixels: {
-        aspect_ratio: "AspectRatioSelector",
+        aspect_ratio: [
+            "AspectRatioSelector",
+            "AspectRatioFromImage",
+        ],
+        megapixels: [
+            "AspectRatioFromImage",
+        ],
     },
 
     ResolutionFromDimensions: {
-        pixelbudget: "PixelBudgetSelector",
+        pixelbudget: [
+		    "PixelBudgetSelector",
+            "AspectRatioFromImage",
+		],
     },
 
     ResolutionFromPixelBudget: {
-        aspect_ratio: "AspectRatioSelector",
-        pixelbudget: "PixelBudgetSelector",
+        aspect_ratio: [
+            "AspectRatioSelector",
+            "AspectRatioFromImage",
+        ],
+        pixelbudget: [
+		    "PixelBudgetSelector",
+            "AspectRatioFromImage",
+		],
     },
 
     ResolutionCalculator: {
-        pixelbudget: "PixelBudgetSelector",
+        pixelbudget: [
+		    "PixelBudgetSelector",
+            "AspectRatioFromImage",
+		],
+    },
+
+    AspectRatioFromImage: {
+        pixelbudget: [
+		    "PixelBudgetSelector",
+            "AspectRatioFromImage",
+		],
     },
 };
 
@@ -148,9 +176,16 @@ app.registerExtension({
 
                 originalExecuted?.apply(this, arguments);
 
-                if (nodeData.name !== "ResolutionCalculator") {
-                    return;
-                }
+                //if (nodeData.name !== "ResolutionCalculator") {
+                //    return;
+                //}
+
+                // Cache values calculated by Python.
+                node._resolutionPreviewValues = {
+                    aspect_ratio: message?.aspect_ratio?.[0],
+                    pixelbudget: message?.pixelbudget?.[0],
+                    megapixels: message?.megapixels?.[0],
+                };
 
                 const resolution = message?.resolution?.[0];
 
@@ -161,6 +196,35 @@ app.registerExtension({
                 }
 
                 node.setDirtyCanvas(true, true);
+
+                // -------------------------------------------------
+                // Notify downstream nodes that calculated values
+                // have changed.
+                // -------------------------------------------------
+
+                for (const targetNode of node.graph?._nodes ?? []) {
+
+                    if (!targetNode._updateResolutionPreview) {
+                        continue;
+                    }
+
+                    const connectedInputs = targetNode.inputs ?? [];
+
+                    const isConnected = connectedInputs.some(input => {
+
+                        if (input.link == null) {
+                            return false;
+                        }
+
+                        const link = node.graph.links?.[input.link];
+
+                        return link?.origin_id === node.id;
+                    });
+
+                    if (isConnected) {
+                        targetNode._updateResolutionPreview();
+                    }
+                }
             };
 
             // -------------------------------------------------
@@ -169,34 +233,51 @@ app.registerExtension({
 
             function get(name) {
 
-                const input = node.inputs?.find(
+                const slot = node.inputs?.findIndex(
                     input => input.name === name
                 );
 
-                if (input?.link != null) {
+                if (slot !== undefined && slot >= 0 &&
+                    node.isInputConnected(slot)) {
 
-                    const link = node.graph?.links?.[input.link];
+                    const link = node.getInputLink(slot);
 
-                    if (link) {
+                    if (!link) {
+                        return undefined;
+                    }
 
-                        const connectedNode = node.graph.getNodeById(
-                            link.origin_id
+                    const connectedNode = node.graph.getNodeById(
+                        link.origin_id
+                    );
+
+                    if (!connectedNode) {
+                        return undefined;
+                    }
+
+                    // First: calculated values from Python.
+                    const calculatedValue =
+                        connectedNode._resolutionPreviewValues?.[name];
+
+                    if (calculatedValue !== undefined &&
+                        calculatedValue !== null) {
+                        return calculatedValue;
+                    }
+
+                    // Second: values from selector widgets.
+                    const connectedWidget =
+                        connectedNode.widgets?.find(
+                            widget => widget.name === name
                         );
 
-                        if (connectedNode) {
-
-                            const connectedWidget =
-                                connectedNode.widgets?.find(
-                                    widget => widget.name === name
-                                );
-
-                            if (connectedWidget) {
-                                return connectedWidget.value;
-                            }
-                        }
+                    if (connectedWidget) {
+                        return connectedWidget.value;
                     }
+
+                    // Connected input, but no value available yet.
+                    return undefined;
                 }
 
+                // Only use local widgets when the input is unconnected.
                 return node.widgets?.find(
                     widget => widget.name === name
                 )?.value;
@@ -209,7 +290,7 @@ app.registerExtension({
             function updatePreview() {
 
                 const multiple = Number(get("multiple"));
-
+				
                 if (!Number.isFinite(multiple) || multiple < 1) {
                     container.textContent = "resolution: -- × --";
                     return;
@@ -306,6 +387,17 @@ app.registerExtension({
 
                 // ResolutionCalculator
                 else if (nodeData.name === "ResolutionCalculator") {
+
+                    // Actual resolution will be received from Python
+                    // after node execution.
+                    container.textContent = "resolution: -- × --";
+
+                    node.setDirtyCanvas(true, true);
+                    return;
+                }
+
+                // AspectRatioFromImage
+                else if (nodeData.name === "AspectRatioFromImage") {
 
                     // Actual resolution will be received from Python
                     // after node execution.

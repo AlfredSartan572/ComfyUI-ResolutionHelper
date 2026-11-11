@@ -8,10 +8,13 @@ Note that selecting a vertical resolution such as 720p does not necessarily prod
 The aspect ratio selection nodes in ComfyUI also only provide a limited set of options. For example, many of them don't include a 16:10 aspect ratio. This Aspect Ratio Selector adds a few more.
 
 
-# 6 nodes
+# 7 nodes
 <img src="assets/ResolutionHelperNodes.png" alt="ResolutionHelperNodes"><br>
+## notes
+- input field "multiple": width and height are rounded down to the nearest multiples of this value.<br>
 <br>
-# notes
-- multiple [int]: width and height are rounded down to the nearest multiples of this value.<br>
-- longest [int]: The larger of the width and height values.<br>
-- megaPixels [float]: The number of pixels for the calculated width and height, expressed in megapixels.
+
+# Example: calculate upscale factor
+Use a single Aspect Ratio Selector node so that the rendered and upscaled always use the same Aspect Ratio.
+<img src="assets/CalculateUpscaleFactor.png" alt="CalculateUpscaleFactor"><br>
+<br>
