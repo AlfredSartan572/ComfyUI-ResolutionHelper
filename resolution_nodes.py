@@ -325,16 +325,18 @@ class AspectRatioFromImage:
 Calculate the Aspect Ratio and Pixel Budget that best fit the given image.
 Also returns image dimensions, longest edge and megapixels.
 """
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", list(ASPECT_RATIOS.keys()), "FLOAT", list(PIXEL_BUDGET_LIST.keys()),)
-    RETURN_NAMES = ("image", "width", "height", "longest", "aspect_ratio", "megapixels", "pixelbudget",)
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", "INT", list(ASPECT_RATIOS.keys()), "FLOAT", list(PIXEL_BUDGET_LIST.keys()), "BOOLEAN",)
+    RETURN_NAMES = ("image", "width", "height", "longest", "shortest", "aspect_ratio", "megapixels", "pixelbudget", "has_alpha",)
     OUTPUT_TOOLTIPS = (
         "passthrough of input image",
         "image width",
         "image height",
         "the larger of the width and height values (i.e. longest edge)",
+        "the smaller of the width and height values (i.e. shortest edge)",
         "the Aspect Ratio that best matches the given image",
         "the number of pixels in the image, expressed in megapixels",
         "the Pixel Budget that best matches the given image",
+        "true if the image has an alpha channel",
     )
     FUNCTION = "calculate_AR"
     CATEGORY = "Resolution Tools"
@@ -352,8 +354,10 @@ Also returns image dimensions, longest edge and megapixels.
     def calculate_AR(self, image):
         img_height = image.shape[1]
         img_width = image.shape[2]
+        has_alpha = image.shape[3] == 4
         mpix = img_width * img_height / 1024 / 1024
         longest = max(img_width, img_height)
+        shortest = min(img_width, img_height)
 
         actual_ratio = img_width / img_height
         best_aspect_ratio = min(
@@ -386,9 +390,11 @@ Also returns image dimensions, longest edge and megapixels.
                 img_width,
                 img_height,
                 longest,
+                shortest,
                 best_aspect_ratio,
                 mpix,
                 best_pixelbudget,
+                has_alpha,
             )
         }
 
