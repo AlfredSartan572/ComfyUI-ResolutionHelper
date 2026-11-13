@@ -320,18 +320,8 @@ app.registerExtension({
 
                     const [aspectWidth, aspectHeight] = ratio;
 
-                    width = roundDown(
-                        Math.sqrt(
-                            megapixels * 1024 * 1024 *
-                            aspectWidth / aspectHeight
-                        ),
-                        multiple
-                    );
-
-                    height = roundDown(
-                        width * aspectHeight / aspectWidth,
-                        multiple
-                    );
+                    width = roundDown( Math.sqrt(megapixels * 1024 * 1024 * aspectWidth / aspectHeight), multiple );
+                    height = roundDown( width * aspectHeight / aspectWidth, multiple );
                 }
 
                 // ResolutionFromDimensions
@@ -352,11 +342,7 @@ app.registerExtension({
                         return;
                     }
 
-                    const scale = Math.sqrt(
-                        (
-                            budget * budget * 16 / 9
-                        ) / (inputHeight * inputWidth)
-                    );
+                    const scale = Math.sqrt( (budget * budget * 16 / 9) / (inputHeight * inputWidth) );
 
                     width = roundDown(inputWidth * scale, multiple);
                     height = roundDown(inputHeight * scale, multiple);

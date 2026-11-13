@@ -92,7 +92,7 @@ Calculate Width & Height from aspect ratio and megapixel target, in 'multiple' m
                     {
                         "default": 32,
                         "min": 1,
-                        "max": 112,
+                        "max": 64,
                         "step": 1,
                         "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
@@ -150,7 +150,7 @@ Calculate Width & Height from aspect ratio and Pixel Budget target, in 'multiple
                     {
                         "default": 32,
                         "min": 1,
-                        "max": 112,
+                        "max": 64,
                         "step": 1,
                         "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
@@ -226,7 +226,7 @@ Calculate Width & Height from source Width & Height to match the given pixel bud
                     {
                         "default": 32,
                         "min": 1,
-                        "max": 112,
+                        "max": 64,
                         "step": 1,
                         "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
@@ -283,7 +283,7 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
                     {
                         "default": 32,
                         "min": 1,
-                        "max": 112,
+                        "max": 64,
                         "step": 1,
                         "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
@@ -348,12 +348,22 @@ Also returns image dimensions, longest edge and megapixels.
                 "image": (
                     "IMAGE",
                 ),
+                "multiple": (
+                    "INT",
+                    {
+                        "default": 1,
+                        "min": 1,
+                        "max": 64,
+                        "step": 1,
+                        "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
+                    }
+                ),    
             }
         }
 
-    def calculate_AR(self, image):
-        img_height = image.shape[1]
-        img_width = image.shape[2]
+    def calculate_AR(self, image, multiple):
+        img_height = math.floor(image.shape[1] / multiple) * multiple
+        img_width = math.floor(image.shape[2] / multiple) * multiple
         has_alpha = image.shape[3] == 4
         mpix = img_width * img_height / 1024 / 1024
         longest = max(img_width, img_height)
