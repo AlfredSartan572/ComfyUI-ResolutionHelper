@@ -24,13 +24,16 @@ ASPECT_RATIOS = {
 PIXEL_BUDGET_LIST = {
     "240p": 240,
     "360p": 360,
+    "416p": 416,
     "480p": 480,      # SD
     "544p": 544,
+    "608p": 608,
     "640p": 640,
     "680p": 680,
     "720p": 720,      # HD
     "768p": 768,
     "864p": 864,
+    "928p": 928,
     "1024p": 1024,
     "1080p": 1080,    # Full HD
     "1200p": 1200,    # 16:10
@@ -305,7 +308,9 @@ Calculate resized dimensions, using 'image' aspect ratio, in 'multiple' multiple
 
         return {
             "ui": {
-                "resolution": [f"{sized_width} × {sized_height}"]
+                "resolution": [f"{sized_width} × {sized_height}"],
+                "original_width": [input_width],
+                "original_height": [input_height],
             },
             "result": (
                 image,
@@ -357,7 +362,7 @@ Also returns image dimensions, longest edge and megapixels.
                         "step": 1,
                         "tooltip": "MiniMaxH3=32, Illustrious/Pony=8, other=16",
                     }
-                ),    
+                ),
             }
         }
 
@@ -391,6 +396,8 @@ Also returns image dimensions, longest edge and megapixels.
         return {
             "ui": {
                 "resolution": [f"{img_width} × {img_height}"],
+                "original_width": [image.shape[2]],
+                "original_height": [image.shape[1]],
                 "aspect_ratio": [best_aspect_ratio],
                 "pixelbudget": [best_pixelbudget],
                 "megapixels": [mpix],

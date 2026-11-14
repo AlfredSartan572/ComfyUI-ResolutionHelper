@@ -24,13 +24,16 @@ const ASPECT_RATIOS = {
 const PIXEL_BUDGETS = {
     "240p": 240,
     "360p": 360,
+    "416p": 416,
     "480p": 480,
     "544p": 544,
+    "608p": 608,
     "640p": 640,
     "680p": 680,
     "720p": 720,
     "768p": 768,
     "864p": 864,
+    "928p": 928,
     "1024p": 1024,
     "1080p": 1080,
     "1200p": 1200,
@@ -162,7 +165,24 @@ app.registerExtension({
                     aspect_ratio: message?.aspect_ratio?.[0],
                     pixelbudget: message?.pixelbudget?.[0],
                     megapixels: message?.megapixels?.[0],
+                    original_width: message?.original_width?.[0],
+                    original_height: message?.original_height?.[0],
                 };
+
+                // Preserve the original image dimensions.
+                if (
+                    nodeData.name === "AspectRatioFromImage" ||
+                    nodeData.name === "ResolutionCalculator"
+                ) {
+                    node._resolutionOriginalDimensions = {
+                        width: nodeData.name === "AspectRatioFromImage"
+                            ? message?.width?.[0]
+                            : undefined,
+                        height: nodeData.name === "AspectRatioFromImage"
+                            ? message?.height?.[0]
+                            : undefined,
+                    };
+                }
 
                 const resolution = message?.resolution?.[0];
 
@@ -267,7 +287,7 @@ app.registerExtension({
             function updatePreview() {
 
                 const multiple = Number(get("multiple"));
-				
+
                 if (!Number.isFinite(multiple) || multiple < 1) {
                     container.textContent = "resolution: -- × --";
                     return;
@@ -290,17 +310,8 @@ app.registerExtension({
                     const [aspectWidth, aspectHeight] = ratio;
                     const pixels = budget * budget * 16 / 9;
 
-                    width = roundDown(
-                        Math.sqrt(
-                            pixels * aspectWidth / aspectHeight
-                        ),
-                        multiple
-                    );
-
-                    height = roundDown(
-                        width * aspectHeight / aspectWidth,
-                        multiple
-                    );
+                    width = roundDown( Math.sqrt(pixels * aspectWidth / aspectHeight), multiple );
+                    height = roundDown( width * aspectHeight / aspectWidth, multiple );
                 }
 
                 // ResolutionFromMegapixels
@@ -351,23 +362,45 @@ app.registerExtension({
                 // ResolutionCalculator
                 else if (nodeData.name === "ResolutionCalculator") {
 
-                    // Actual resolution will be received from Python
-                    // after node execution.
-                    container.textContent = "resolution: -- × --";
+                    const budget = PIXEL_BUDGETS[get("pixelbudget")];
 
-                    node.setDirtyCanvas(true, true);
-                    return;
+                    const inputWidth = node._resolutionPreviewValues?.original_width;
+                    const inputHeight = node._resolutionPreviewValues?.original_height;
+
+                    if (
+                        !budget ||
+                        !Number.isFinite(inputWidth) ||
+                        !Number.isFinite(inputHeight)
+                    ) {
+                        container.textContent = "resolution: -- × --";
+                        return;
+                    }
+
+                    const scale = Math.sqrt(
+                        (budget * budget * 16 / 9) /
+                        (inputHeight * inputWidth)
+                    );
+
+                    width = roundDown(inputWidth * scale, multiple);
+                    height = roundDown(inputHeight * scale, multiple);
                 }
 
                 // AspectRatioFromImage
                 else if (nodeData.name === "AspectRatioFromImage") {
 
-                    // Actual resolution will be received from Python
-                    // after node execution.
-                    container.textContent = "resolution: -- × --";
+                    const inputWidth = node._resolutionPreviewValues?.original_width;
+                    const inputHeight = node._resolutionPreviewValues?.original_height;
 
-                    node.setDirtyCanvas(true, true);
-                    return;
+                    if (
+                        !Number.isFinite(inputWidth) ||
+                        !Number.isFinite(inputHeight)
+                    ) {
+                        container.textContent = "resolution: -- × --";
+                        return;
+                    }
+
+                    width = roundDown(inputWidth, multiple);
+                    height = roundDown(inputHeight, multiple);
                 }
 
                 container.textContent =
